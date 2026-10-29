@@ -1,0 +1,8 @@
+* text=auto eol=lf
+# Preserve exact bytes for integrity hashes and binary artifact offsets.
+*.csv binary
+*.pdf binary
+*.joblib binary
+*.png binary
+*.jpg binary
+*.zip binary

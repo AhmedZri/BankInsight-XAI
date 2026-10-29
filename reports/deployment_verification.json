@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-28",
+  "source": "archive publique nettoyee, modele complet",
+  "docker_build": "passed",
+  "cpu_limit": 2,
+  "memory_limit_bytes": 2147483648,
+  "memory_peak_bytes": 1592082432,
+  "professor_pdf_in_image": false,
+  "approved_public_models": 5,
+  "http_health_openapi_inference_shap_lime": "passed",
+  "streamlit_websocket": "HTTP 101 Switching Protocols",
+  "pytest_linux": {
+    "passed": 43,
+    "failed": 0
+  },
+  "apptest": "six sections, preparation appliquee, cinq modeles entraines via UI, seuil, SHAP, LIME, formulaire fictif : passed",
+  "supervision": {
+    "method": "SIGTERM volontaire sur le processus API du conteneur QA",
+    "container_exited": true,
+    "exit_code": 241,
+    "oom_killed": false
+  },
+  "public_deployment": false,
+  "public_url": null,
+  "browser_visual_test": "blocked: Browser is not available: chrome",
+  "categorical_age_csv_regression": "verified"
+}

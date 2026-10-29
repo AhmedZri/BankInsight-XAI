@@ -1,0 +1,84 @@
+{
+  "date": "2026-10-28",
+  "specification": {
+    "file": "docs/Projet_Challenge_1_Classification_Explicable (1).pdf",
+    "pages_read": 4,
+    "public_distribution": false
+  },
+  "windows_pytest": {
+    "passed": 43,
+    "failed": 0,
+    "command": "python -m pytest -q",
+    "warnings": "deprecation tierce AnyIO/Starlette"
+  },
+  "linux_pytest": {
+    "passed": 43,
+    "failed": 0,
+    "memory_limit_gib": 2,
+    "cpu_limit": 2
+  },
+  "dataset": {
+    "rows": 45211,
+    "positive_rows": 5289,
+    "training_rows": 36168,
+    "holdout_rows": 9043,
+    "holdout_previously_observed": true,
+    "same_holdout_as_quick": true
+  },
+  "full_training_resources": {
+    "exit_code": 0,
+    "elapsed_seconds": 83.14,
+    "peak_rss_mib": 476.93,
+    "time_limit_seconds": 900,
+    "memory_limit_mib": 1536,
+    "cpu_threads": 2,
+    "limit_reason": null
+  },
+  "scientific_audit": "reports/acceptance_audit.json",
+  "mode_comparison": "reports/mode_comparison.json",
+  "notebook": {
+    "executed_code_cells": 11,
+    "cell_errors": 0,
+    "method": "noyau propre, fonctions canoniques"
+  },
+  "streamlit": {
+    "apptest": "passed, inclut entrainement cinq modeles, seuil et formulaire fictif",
+    "http_api_integration": "passed",
+    "browser": "blocked: Browser is not available: chrome",
+    "screenshots": 0
+  },
+  "docker_verification": "reports/deployment_verification.json",
+  "pdf": {
+    "pages": 1,
+    "results": "mode complet verifie",
+    "render_review": "PNG inspecte, contenu lisible sans chevauchement"
+  },
+  "github": {
+    "requested_account": "AhmedZri",
+    "connection_matches": false,
+    "repository_url": null,
+    "publication": "blocked: reconnecter le compte et creer ou fournir le depot"
+  },
+  "hugging_face": {
+    "requested_account": "Ahmedzrii",
+    "connection_matches": false,
+    "write_repo_scope": false,
+    "public_authorization_received": false,
+    "space_url": null
+  },
+  "submission": {
+    "private_professor_archive": "Challenge1_Classification_Explicable_ENSI.zip",
+    "public_source_archive": "BankInsight-XAI_publication.zip",
+    "extraction_verification_command": "python scripts/verify_submission.py",
+    "integrity_method": "CRC et extraction temporaire controles a chaque packaging"
+  },
+  "final_submission_ready": false,
+  "git_index": {
+    "files": 68,
+    "approved_public_models": 5,
+    "professor_pdf_excluded": true,
+    "csv_pdf_bytes_identical_to_worktree": true,
+    "publications": 0
+  },
+  "categorical_age_csv_regression": "verified"
+}

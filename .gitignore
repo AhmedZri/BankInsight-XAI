@@ -1,0 +1,14 @@
+﻿.venv/
+__pycache__/
+.pytest_cache/
+tmp/
+*.pyc
+*.zip
+.env
+.env.*
+!.env.example
+.aws/
+.codex/
+artifacts/registry/
+# Document pédagogique privé : présent uniquement dans la remise au professeur.
+docs/Projet_Challenge_1_Classification_Explicable*.pdf

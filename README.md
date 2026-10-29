@@ -1,0 +1,288 @@
+---
+title: BankInsight XAI
+emoji: 🏦
+colorFrom: blue
+colorTo: gray
+sdk: docker
+app_port: 7860
+license: mit
+---
+
+# BankInsight XAI — Classification explicable pour le marketing bancaire
+
+Projet Challenge 1, ENSI, Data Mining, filières II3-IA et II3-IF, 2026/2027. Enseignante : Rym Besrour. Cas 3 : prédire la souscription à un dépôt à terme et expliquer les décisions. Ce prototype universitaire ne constitue pas une politique de ciblage validée pour une banque.
+
+**Dépôt GitHub des sources publiques : [AhmedZri/BankInsight-XAI](https://github.com/AhmedZri/BankInsight-XAI).** Les 15 captures sont présentées ci-dessous. **Application en ligne : non déployée à ce stade ; aucune URL applicative ni API publique n’a encore été vérifiée.** Le code, les modèles et les résultats scientifiques sont gelés.
+
+Le cahier des charges officiel est le PDF pédagogique fourni dans `docs/` pour la remise privée, lu intégralement (4 pages). Il est exclu du dépôt Git, de l’archive de publication et de Docker, faute d’autorisation de publication. La [matrice de conformité](docs/conformite.md) distingue fonctions réalisées, vérifications et livrables externes restant à publier. Le PDF exige un déploiement et un dépôt GitHub ; leur préparation ne remplace pas leur publication. Aucun lien de publication n’est inventé.
+
+## Installation reproductible sous Windows
+
+Python **3.11**, connexion Internet pour installer les dépendances ; le cache UCI public inclus permet ensuite le fonctionnement sans téléchargement de données. Depuis une extraction du ZIP, ouvrir PowerShell dans `BankInsight-XAI` :
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe scripts/run_local.py
+```
+
+Ouvrir **http://127.0.0.1:8501** ; documentation API **http://127.0.0.1:8000/api/docs**. L’activation du venv n’est pas nécessaire. Arrêter les deux processus avec Ctrl+C. Si les ports sont occupés :
+
+```powershell
+.\.venv\Scripts\python.exe scripts/run_local.py --api-port 8010 --ui-port 8510
+```
+
+Sous Linux : `python3.11 -m venv .venv`, puis `.venv/bin/python -m pip install -r requirements.txt` et `.venv/bin/python scripts/run_local.py`. `requirements.txt` fixe les dépendances directes testées ; `requirements-lock.txt` capture également les dépendances transitives de l’environnement Windows vérifié (le paquet Linux n’utilise pas obligatoirement ce gel Windows).
+
+Pour lancer séparément les services dans deux terminaux PowerShell :
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn src.api.main:app --host 127.0.0.1 --port 8000
+```
+
+```powershell
+$env:BANKINSIGHT_API_URL='http://127.0.0.1:8000'
+.\.venv\Scripts\python.exe -m streamlit run app.py
+```
+
+Les variables facultatives figurent dans `.env.example` ; aucun secret ni fichier `.env` n’est requis. La lecture automatique d’un `.env` n’est pas implémentée : définir les variables dans le terminal si nécessaire.
+
+## Données et provenance
+
+[UCI Bank Marketing, jeu 222](https://archive.ics.uci.edu/dataset/222/bank+marketing) : 45 211 lignes, 16 variables brutes et cible `y` ; 5 289 réponses `yes` (11,7 %). Attribution : **Moro, S., Rita, P. et Cortez, P. (2014). Bank Marketing [Dataset]. UCI Machine Learning Repository. DOI [10.24432/C5K306](https://doi.org/10.24432/C5K306)**. Licence des données : **CC BY 4.0**, distincte de la licence du code.
+
+`src/data.py` utilise `fetch_ucirepo(id=222)`, vérifie dimensions et classes puis enregistre `data/uci_bank.csv` et son manifeste SHA256. Le cache est relu et son empreinte vérifiée à chaque chargement. `load_uci(refresh=True)` retente le réseau et se replie sur le cache vérifié en cas d’échec. Le SHA256 détecte une altération accidentelle ; il n’est pas une signature cryptographique de l’éditeur. Le cache public fourni provient du téléchargement officiel réalisé pendant la validation.
+
+La cible positive est `yes` et la négative `no`. **`duration` est interdite dans toute sélection et retirée avant la modélisation**, y compris pour les CSV. Point de décision : juste avant l’appel planifié, lorsque jour, mois, canal et rang de campagne sont connus. Le [détail de l’audit](docs/methodologie.md) explique la disponibilité des autres variables et les limites temporelles. `pdays=-1` est conservé (aucun contact précédent), `unknown` reste une modalité lorsqu’elle est présente ; les valeurs réellement manquantes du jeu récupéré sont imputées.
+
+Pour les CSV : choisir cible, classe positive puis variables explicatives. Cible strictement binaire, non manquante ; minimum 30 lignes et 6 exemples par classe, puis contrôle des effectifs après séparation. Les valeurs infinies des caractéristiques deviennent manquantes. Les noms nettoyés doivent être distincts. Le nombre minimum ne garantit pas une évaluation scientifiquement précise. Les CSV ne sont pas enregistrés dans le cache public ; leurs modèles locaux restent dans le registre, **hors ZIP sauf liste explicite des modèles UCI publics**.
+
+## Six modules
+
+1. **Données** : acquisition UCI ou CSV, aperçu, types, statistiques, manquants, proportions, histogrammes interactifs, corrélations et taux positif par groupe.
+2. **Préparation** : variables, imputations médiane/moyenne et modalité majoritaire/constante, one-hot, standardisation facultative, graine et test de 10 à 40 %.
+3. **Modélisation** : logistique, arbre, KNN, forêt et XGBoost, paramètres avancés fixes ou recherche aléatoire (1 à 9 candidats, 3 plis), durées et comparaison. Une valeur fixée dans l’interface n’est pas remplacée par la recherche.
+4. **Évaluation** : ROC-AUC, Average Precision (résumé de PR-AUC, pas intégrale trapézoïdale), précision, rappel, F1, rapport de classification, matrices de confusion, courbes ROC/PR superposées et seuil interactif.
+5. **Explainable AI** : importances natives sauf KNN, coefficients signés de la logistique, permutation, SHAP beeswarm et dépendance, client du test ou formulaire fictif, SHAP waterfall, LIME, synthèse française issue des contributions et audit exploratoire des groupes.
+6. **API** : santé, modèles, prédiction, SHAP/LIME local et SHAP/permutation global ; Streamlit appelle réellement FastAPI pour les trois opérations d’inférence et d’explication.
+
+## Captures de l’application
+
+Les 15 captures fournies sont conservées dans `assets/figures/screenshots/`. Elles illustrent les six modules de l’application locale. La préparation montre le mode rapide ; les vues de comparaison et d’évaluation affichent l’expérience complète archivée. Les résultats scientifiques présentés dans ce README restent inchangés.
+
+### 1. Données et exploration
+
+![Tableau de bord, aperçu des données UCI et exclusion de duration](assets/figures/screenshots/01_donnees_apercu.png)
+
+<details>
+<summary>Répartition des classes, distributions et corrélations</summary>
+
+![Répartition des classes et analyse des valeurs manquantes](assets/figures/screenshots/02_repartition_classes.png)
+
+![Distribution de l’âge et taux positif par groupe](assets/figures/screenshots/03_distributions_taux_positif.png)
+
+![Matrice des corrélations entre variables numériques](assets/figures/screenshots/04_correlations_numeriques.png)
+
+</details>
+
+### 2. Préparation des données
+
+![Sélection des variables, split, imputation et standardisation](assets/figures/screenshots/05_preparation_donnees.png)
+
+### 3. Modélisation et comparaison
+
+![Cinq modèles et tableau comparatif de l’expérience complète](assets/figures/screenshots/06_comparaison_modeles.png)
+
+### 4. Évaluation
+
+![Métriques XGBoost et curseur de seuil exploratoire](assets/figures/screenshots/07_metriques_xgboost.png)
+
+<details>
+<summary>Courbes ROC, précision-rappel et matrice de confusion</summary>
+
+![Courbes ROC et précision-rappel, comparaison des performances et matrice de confusion](assets/figures/screenshots/08_roc_pr_matrice_confusion.png)
+
+</details>
+
+### 5. Explications SHAP et diagnostic LIME
+
+![Beeswarm SHAP : influence globale des variables](assets/figures/screenshots/09_shap_beeswarm_global.png)
+
+<details>
+<summary>Dépendance SHAP, prédiction d’un client et explications locales</summary>
+
+![Dépendance SHAP pour la variable month avec son codage catégoriel](assets/figures/screenshots/10_shap_dependance.png)
+
+![Attributs du client du test et probabilité positive retournée par l’API](assets/figures/screenshots/11_prediction_client.png)
+
+![Waterfall SHAP : contributions à la probabilité positive du client](assets/figures/screenshots/12_shap_waterfall_local.png)
+
+![Synthèse locale, fidélité LIME et avertissement d’interprétation](assets/figures/screenshots/13_lime_diagnostic.png)
+
+</details>
+
+### 6. Service FastAPI
+
+![Documentation Swagger du service FastAPI et liste des endpoints](assets/figures/screenshots/14_fastapi_swagger.png)
+
+<details>
+<summary>Intégration du service dans Streamlit</summary>
+
+![Santé du service, documentation et exemple réel de requête dans Streamlit](assets/figures/screenshots/15_service_api_streamlit.png)
+
+</details>
+
+## Architecture et méthodologie
+
+```text
+app.py -> src/api_client.py -> HTTP FastAPI -> registre local -> Pipeline scikit-learn
+                  src/data.py -> préparation -> CV -> modèle retenu -> registre
+```
+
+Une seule implémentation par responsabilité : `data`, `preprocessing`, `modeling`, `evaluation`, `explainability`, `model_registry`, `plots`. Le notebook et les scripts réutilisent ces fonctions. Streamlit lit les partitions et résultats du registre pour présenter l’évaluation ; il ne possède pas de seconde logique d’inférence. Joblib ne charge que les identifiants hexadécimaux du registre local de confiance ; aucune désérialisation de fichier envoyé par l’utilisateur.
+
+Le test stratifié est séparé en premier, puis le mode rapide réduit seulement l’entraînement à 2 500 lignes. Le mode complet conserve l’ensemble de l’entraînement. À chaque pli de CV, les imputations, l’encodeur et le scaler sont réajustés. La recommandation dépend de l’AP moyenne de CV et jamais d’une recherche sur le test. Pondération équilibrée des classes pour logistique/arbre/forêt, ratio négatifs/positifs pour XGBoost ; KNN utilise les distances. Les probabilités ne sont pas calibrées ; ne pas les traiter comme des taux commerciaux absolus.
+
+**Le seuil sur le test est exploratoire.** Il modifie décisions, matrice, précision, rappel et F1, mais ni ROC-AUC ni AP. Aucun seuil optimal n’est revendiqué. Faux positif : appel sans souscription ; faux négatif : occasion manquée. Un seuil opérationnel devrait être choisi sur des prédictions de validation issues exclusivement de l’entraînement, à partir de coûts métier.
+
+SHAP explique une fonction scalaire `P(classe positive)` commune aux cinq modèles via l’algorithme permutation : pas de sélection ambiguë d’un axe de classes. Il masque des **variables métier entières**, puis redécode les catégories avant le Pipeline : pas de combinaisons one-hot impossibles à l’intérieur d’une variable. Références : 20 clients d’entraînement, 3 permutations, 24 observations globales par défaut (8 à 48 dans l’UI, maximum 50 dans l’API). Contrôle d’additivité en probabilité à 1e-5. Les dépendances entre variables ne sont pas préservées par ce masquage marginal ; les références et l’échantillonnage influencent les attributions. Les codes catégoriels des graphiques sont accompagnés de leur dictionnaire.
+
+LIME explique le même client, modèle et classe 1, avec 700 perturbations, catégories discrètes et variables continues discrétisées. Ses poids concernent un substitut local ; sa fidélité R² et l’accord de signe sur les trois principaux facteurs SHAP sont affichés. Ces méthodes ne prouvent aucune causalité. Les importances natives agrègent les valeurs absolues selon une correspondance positionnelle exacte des colonnes encodées ; le tableau détaillé conserve les coefficients signés. L’importance par permutation utilise 300 clients fixes du test au maximum, 3 répétitions et la baisse d’AP ; son rôle est descriptif, pas la sélection après consultation du test.
+
+## Reproduire les résultats et le notebook
+
+```powershell
+.\.venv\Scripts\python.exe scripts/run_experiment.py --full --budget 2
+.\.venv\Scripts\python.exe scripts/audit_release.py
+.\.venv\Scripts\python.exe scripts/generate_report.py
+```
+
+Le script entraîne les cinq modèles, enregistre les artefacts publics approuvés et `reports/experiment.json`, puis calcule les preuves SHAP/LIME. Le rapport lit uniquement ces preuves. La recette finale utilise **36 168 lignes d’entraînement et le holdout inchangé de 9 043 lignes**, graine 42, deux candidats par modèle et trois plis. Le budget était fixé avant cette exécution ; aucun réajustement n’a été effectué selon les résultats du test.
+
+| Modèle | AP CV rapide | AP CV complet | AP test rapide | AP test complet | ROC-AUC test complet |
+|---|---:|---:|---:|---:|---:|
+| Logistique | 0,312 | 0,384 | 0,381 | 0,394 | 0,752 |
+| Arbre | 0,259 | 0,364 | 0,309 | 0,375 | 0,745 |
+| KNN | 0,230 | 0,297 | 0,244 | 0,321 | 0,694 |
+| Forêt | 0,348 | 0,400 | 0,398 | 0,410 | 0,765 |
+| XGBoost | 0,331 | **0,427** | 0,371 | **0,446** | **0,787** |
+
+Le mode complet retient XGBoost par AP CV. Il a pris **83,14 secondes**, explications incluses, avec un pic RSS mesuré de **476,93 Mio**, sous limites de 900 secondes, 1 536 Mio et deux threads de calcul. Mesures : `reports/full_training_resources.json`. Les résultats rapides conservés dans `reports/quick_experiment.json` et la comparaison `reports/mode_comparison.json` sont historiques, non des implémentations concurrentes.
+
+**Le holdout avait déjà été consulté lors de la démonstration rapide** : la comparaison est descriptive, pas une nouvelle validation indépendante ni un test de significativité. Les empreintes du dataset et des indices train/test figurent dans la provenance de l’expérience. La fidélité LIME du client final reste faible (**R² 0,294**), même si les principaux signes concordent avec SHAP ; ses poids appellent donc à la prudence. Le mois, le logement à crédit et l’issue de la campagne précédente dominent l’échantillon SHAP final ; il ne s’agit pas d’effets causaux.
+
+Ouvrir `notebooks/01_bank_marketing_analysis.ipynb` dans Jupyter ou VS Code, sélectionner Python du venv et exécuter dans l’ordre. Pour vérifier sans interface :
+
+```powershell
+.\.venv\Scripts\python.exe scripts/execute_notebook.py
+```
+
+## Utiliser l’API
+
+`GET /api/models` fournit les identifiants réels et la liste exacte des caractéristiques attendues. Un client doit contenir toutes ces clés, avec `null` pour une valeur manquante. Une catégorie inconnue est acceptée et encodée comme inconnue ; une colonne en trop ou absente est refusée (422), un modèle inconnu renvoie 404. Les explications sont limitées en taille ; la démonstration n’inclut pas de service d’authentification ni de limitation de débit pour un usage bancaire de production.
+
+Exemple PowerShell sur le modèle public livré, sans recopier manuellement 15 attributs :
+
+```powershell
+$proof = Get-Content reports/experiment.json -Raw -Encoding utf8 | ConvertFrom-Json
+$body = @{model_id=$proof.selected_id; customers=@($proof.customer); threshold=0.5} | ConvertTo-Json -Depth 8
+Invoke-RestMethod -Uri http://127.0.0.1:8000/api/predict -Method Post -ContentType application/json -Body $body
+```
+
+Pour une explication locale : corps `{ "model_id": "identifiant réel", "customer": { "toutes les variables": "valeurs" }, "threshold": 0.5 }` vers `/api/explain/local`. Pour le global : `{ "model_id": "identifiant réel", "sample_size": 24 }` vers `/api/explain/global`. Les exemples de `/api/docs` sont structurels ; remplacer l’identifiant et compléter selon le modèle effectivement sélectionné.
+
+## Tests et livraison
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe scripts/package_submission.py
+.\.venv\Scripts\python.exe scripts/verify_submission.py
+```
+
+Tests synthétiques : classes/cible, cache et téléchargement simulé, CSV, exclusion de duration, split, transformations apprises sur l’entraînement, cinq modèles, recherche limitée au train, seuil/métriques, registre, SHAP positif/additivité, LIME et API. Tests de livraison : PDF exactement une page et ZIP extrait, sans chemins externes. `scripts/run_experiment.py` constitue le test réel UCI. Voir `reports/verification.json` pour les commandes effectivement exécutées et leurs limites.
+
+Avec l’API locale en marche :
+
+```powershell
+$env:BANKINSIGHT_API_URL='http://127.0.0.1:8000'
+.\.venv\Scripts\python.exe scripts/verify_ui.py
+```
+
+La génération du ZIP utilise une liste blanche et une liste de modèles UCI publics, exclut venv, Git, caches Python, fichiers secrets et CSV privés. Le script vérifie CRC, livrables essentiels et extraction temporaire. Le fichier livré est `Challenge1_Classification_Explicable_ENSI.zip` à la racine. Après extraction, refaire installation et `pytest`, puis lancer `scripts/run_local.py`. Aucun chemin du poste de développement n’est requis.
+
+`.gitattributes` préserve les octets des CSV, PDF et modèles : la conversion automatique des fins de ligne Windows ne doit ni invalider le SHA256 du cache UCI ni modifier les offsets internes du PDF. L’index Git de recette a été comparé octet pour octet à ces fichiers.
+
+Pour la publication sur GitHub ou Hugging Face, produire **l’archive distincte sans le PDF pédagogique** :
+
+```powershell
+.\.venv\Scripts\python.exe scripts/package_submission.py --public
+.\.venv\Scripts\python.exe scripts/verify_submission.py --archive BankInsight-XAI_publication.zip
+Expand-Archive -LiteralPath BankInsight-XAI_publication.zip -DestinationPath tmp/publication
+```
+
+Publier uniquement le contenu de `tmp/publication/BankInsight-XAI`. L’archive destinée au professeur contient son cahier des charges ; elle ne doit pas être téléversée telle quelle sur un dépôt public. Les anciens modèles locaux hors liste approuvée ne sont inclus dans aucune des deux archives.
+
+## Hébergement gratuit et déploiement du conteneur existant
+
+Un seul conteneur expose **7860** : Nginx distribue `/api/` à FastAPI (8000) et le reste à Streamlit (8501), avec l’upgrade WebSocket. `deploy/start.py` supervise les trois processus et partage le registre local entre l’interface et l’API. Le Dockerfile existant utilise Python 3.11 et l’UID 1000 ; aucun composant scientifique n’a été modifié pour la publication.
+
+```powershell
+docker build -t bankinsight-xai tmp/publication/BankInsight-XAI
+docker run --rm --name bankinsight-demo --cpus 2 --memory 2g -p 7860:7860 bankinsight-xai
+# Dans un autre terminal :
+.\.venv\Scripts\python.exe scripts/verify_http.py
+```
+
+### Choix d’hébergement vérifié le 29 octobre 2026
+
+- **Streamlit Community Cloud** déploie un point d’entrée Streamlit. Le lancement de `app.py` seul ne démarre pas le processus FastAPI existant. Une séparation sur deux services exigerait aussi de préserver le registre partagé lors des entraînements. Cette publication ne remplace donc pas le backend par une simulation et ne modifie pas le code gelé pour contourner cette contrainte. [Déploiement Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy).
+- **Hugging Face Docker Spaces** : la documentation actuelle indique que la création d’un Space Docker nécessite un abonnement payant, même lorsque le CPU Basic n’a pas de coût horaire. Ce choix n’est donc pas retenu pour la contrainte « aucun service payant ». L’en-tête YAML Docker historique reste une configuration technique, pas une preuve de gratuité ni de déploiement. [Conditions actuelles des Spaces](https://huggingface.co/docs/hub/spaces-overview).
+- **Render et Koyeb gratuits** : 512 Mo de RAM, inférieurs au pic de recette de 1,48 Gio. Leur compatibilité n’est pas déclarée sans essai concluant ; aucune montée en gamme payante n’est autorisée. [Render](https://render.com/docs/compute-plans), [Koyeb](https://www.koyeb.com/docs/reference/instances).
+- **VM Linux réellement gratuite** : le conteneur peut être préparé sur une machine existante disposant d’au moins 2 Gio de RAM. Une possibilité est OCI **Always Free**, dans la région d’origine, en respectant les ressources explicitement marquées gratuites. La documentation actuelle mentionne jusqu’à 2 OCPU et 12 Go pour Ampere A1, sous réserve de disponibilité. Le compte doit rester en offre gratuite, sans passage en Pay As You Go. La compatibilité ARM et les endpoints doivent être testés sur la machine réelle avant toute annonce de réussite. [Ressources Always Free](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm), [conditions du compte gratuit](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier.htm).
+
+### Action manuelle requise pour terminer l’hébergement
+
+Fournir un accès SSH à une VM Linux gratuite d’au moins 2 Gio, ou créer une VM explicitement **Always Free** dans votre propre compte OCI, sans mise à niveau payante. La création du compte peut demander une vérification bancaire par le fournisseur ; elle doit être effectuée par le propriétaire, hors de ce dépôt. Aucune clé privée ni aucun mot de passe ne doit être placé dans le projet ou transmis dans le chat. Aucun hôte cloud utilisable n’est actuellement authentifié dans cette session.
+
+Sur la VM, après installation de Docker depuis sa distribution officielle :
+
+```bash
+git clone https://github.com/AhmedZri/BankInsight-XAI.git
+cd BankInsight-XAI
+docker build -t bankinsight-xai .
+docker run -d --name bankinsight-xai --restart unless-stopped \
+  --cpus 2 --memory 2g -p 7860:7860 bankinsight-xai
+docker logs --tail 100 bankinsight-xai
+curl --fail http://127.0.0.1:7860/api/health
+```
+
+Autoriser le port applicatif 7860 dans les règles réseau de la VM et du fournisseur. Utiliser les seules sources publiques du dépôt, sans le ZIP professeur. Puis, depuis le projet local, tester **l’adresse réellement attribuée** :
+
+```powershell
+.\.venv\Scripts\python.exe scripts/verify_http.py --base 'URL_PUBLIQUE_REELLE'
+```
+
+Le contrôle réalise des requêtes HTTP réelles : santé, OpenAPI, inférence, SHAP/LIME local et global, puis upgrade WebSocket. Il supporte également HTTPS avec validation du certificat. Ouvrir ensuite la page de l’application et `/api/docs` dans un navigateur, puis reporter les vraies URL dans ce README. Une image construite localement ne prouve pas la disponibilité du service dans le cloud.
+
+Sur une instance publique partagée, le registre est partagé et le prototype n’est pas adapté à des données personnelles. Réserver les CSV privés à une exécution locale contrôlée. Les fichiers créés dans un conteneur sans volume ne sont pas une sauvegarde persistante ; les modèles UCI livrés restent présents dans l’image.
+
+## Publication GitHub
+
+Le dépôt public cible est **[AhmedZri/BankInsight-XAI](https://github.com/AhmedZri/BankInsight-XAI)**. Son propriétaire et les droits d’administration de GitHub CLI ont été vérifiés sur le compte **AhmedZri**, indépendamment du compte utilisé par le connecteur GitHub. Aucun jeton n’est stocké dans le projet. Le PDF pédagogique, les archives ZIP, les environnements et les artefacts non approuvés sont exclus de la publication.
+
+Pour une nouvelle copie des seules sources publiques :
+
+```powershell
+git clone https://github.com/AhmedZri/BankInsight-XAI.git
+Set-Location BankInsight-XAI
+```
+
+## Limites et captures
+
+Données anciennes d’une banque portugaise, absence de validation temporelle prospective et d’identifiant client pour un split par client, pondération sans calibration, petit budget de recherche, explanations marginales échantillonnées. Les différences de rappel par âge/situation familiale sont exploratoires, avec effectifs affichés, sans preuve de discrimination ni d’équité. La suppression de variables sensibles ne supprimerait pas nécessairement leurs proxys.
+
+Les exports `assets/figures/shap_global.png` et `assets/figures/shap_local.png` sont des figures calculées. Les captures fournies ensuite par le propriétaire sont présentées dans la galerie ci-dessus et incluses dans le ZIP professeur. Les rapports de recette existants conservent l’état de la vérification automatisée antérieure à cet ajout.
+
+Lors de cette recette automatisée, l’inventaire était `apps=[]`, `browsers=[]` et l’ouverture Chrome avait été refusée avec **« Browser is not available: chrome »**. L’intégration des captures fournies ne constitue pas une nouvelle exécution des tests navigateur. Le [parcours manuel](docs/recette_navigateur.md) reste disponible pour une vérification complémentaire. L’hébergement public et sa vérification HTTP restent à compléter ; aucune URL applicative n’est inventée.
+
+La recette Docker locale issue de l’archive publique est contrôlée avec deux CPU et 2 Gio de RAM : santé, OpenAPI, inférence, SHAP/LIME, WebSocket, pytest et parcours AppTest incluant entraînement réel et formulaire fictif. Les résultats finaux figurent dans `reports/verification.json`. Pic mémoire cgroup mesuré : **1 592 082 432 octets (1,48 Gio)** ; ce n’est pas un benchmark multiutilisateur. L’arrêt volontaire du processus API termine le conteneur et ses autres services ; le code 241 enregistré correspond à ce signal de test, sans OOM. Voir `reports/deployment_verification.json`. Aucun de ces contrôles locaux n’est présenté comme un déploiement public ou une recette navigateur.

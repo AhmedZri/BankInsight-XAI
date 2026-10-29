@@ -1,0 +1,8 @@
+{
+  "sha256": "592cda3d5f6b704f0ce23477e8375acf2301460efe76cd192e2a789325ccdc13",
+  "source": "https://archive.ics.uci.edu/dataset/222/bank+marketing",
+  "rows": 45211,
+  "license": "CC BY 4.0",
+  "authors": "S. Moro, P. Rita et P. Cortez (2014)",
+  "doi": "10.24432/C5K306"
+}

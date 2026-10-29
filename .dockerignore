@@ -1,0 +1,14 @@
+.venv
+.git
+__pycache__
+.pytest_cache
+tmp
+*.zip
+.env
+.env.*
+!.env.example
+.aws
+.codex
+.agents
+data/private
+docs/Projet_Challenge_1_Classification_Explicable*.pdf

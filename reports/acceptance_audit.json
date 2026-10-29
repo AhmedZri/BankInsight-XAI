@@ -1,0 +1,69 @@
+{
+  "mandatory_local_modules": 6,
+  "models": [
+    {
+      "model": "logistic",
+      "train_rows": 36168,
+      "test_rows": 9043,
+      "prediction_reload": "ok",
+      "positive_class": "1 = yes",
+      "duration": "exclue",
+      "training_only_imputation_scaling": "ok",
+      "threshold_invariants": "ok"
+    },
+    {
+      "model": "tree",
+      "train_rows": 36168,
+      "test_rows": 9043,
+      "prediction_reload": "ok",
+      "positive_class": "1 = yes",
+      "duration": "exclue",
+      "training_only_imputation_scaling": "ok",
+      "threshold_invariants": "ok"
+    },
+    {
+      "model": "knn",
+      "train_rows": 36168,
+      "test_rows": 9043,
+      "prediction_reload": "ok",
+      "positive_class": "1 = yes",
+      "duration": "exclue",
+      "training_only_imputation_scaling": "ok",
+      "threshold_invariants": "ok"
+    },
+    {
+      "model": "forest",
+      "train_rows": 36168,
+      "test_rows": 9043,
+      "prediction_reload": "ok",
+      "positive_class": "1 = yes",
+      "duration": "exclue",
+      "training_only_imputation_scaling": "ok",
+      "threshold_invariants": "ok"
+    },
+    {
+      "model": "xgboost",
+      "train_rows": 36168,
+      "test_rows": 9043,
+      "prediction_reload": "ok",
+      "positive_class": "1 = yes",
+      "duration": "exclue",
+      "training_only_imputation_scaling": "ok",
+      "threshold_invariants": "ok"
+    }
+  ],
+  "holdout_index_sha256": "c1c3c7f5f45b5ba6159c45650c2f59b8270c4314b3e403e8a549f9047d292055",
+  "same_holdout_quick_full": true,
+  "holdout_previously_observed": true,
+  "cv_selection": "Average Precision ; budget identique de 2 candidats, aucun réajustement sur le test",
+  "shap_units": "probabilité de la classe positive",
+  "shap_local_additivity_error": 0.0,
+  "shap_global_additivity_error": 5.551115123125783e-17,
+  "local_probability_matches_original_customer": true,
+  "lime_r2": 0.2944858110221922,
+  "external_acceptance": {
+    "browser": "bloqué : Browser is not available: chrome",
+    "github": "destination AhmedZri ; connexion actuelle sur un autre compte, reconnexion requise ; création non exposée",
+    "hugging_face": "destination Ahmedzrii ; connexion actuelle sur un autre compte sans écriture repos ; autorisation publique requise"
+  }
+}
