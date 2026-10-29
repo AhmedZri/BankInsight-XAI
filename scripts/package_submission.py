@@ -20,7 +20,7 @@ def package(output=None, public=False):
         path = ROOT / directory
         if path.exists():
             files.extend(p for p in path.rglob('*') if p.is_file() and '__pycache__' not in p.parts and p.suffix not in ['.pyc','.log'])
-    for name in ['app.py','requirements.txt','requirements-lock.txt','README.md','Dockerfile','.dockerignore','.gitignore','.gitattributes','.env.example','pytest.ini','LICENSE']:
+    for name in ['app.py','cloud_app.py','requirements.txt','requirements-lock.txt','README.md','Dockerfile','.dockerignore','.gitignore','.gitattributes','.env.example','pytest.ini','LICENSE']:
         if (ROOT / name).exists(): files.append(ROOT / name)
     for name in ['data/uci_bank.csv','data/uci_bank.json','artifacts/public_demo.json']:
         files.append(ROOT / name)

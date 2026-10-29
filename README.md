@@ -222,49 +222,58 @@ Expand-Archive -LiteralPath BankInsight-XAI_publication.zip -DestinationPath tmp
 
 Publier uniquement le contenu de `tmp/publication/BankInsight-XAI`. L’archive destinée au professeur contient son cahier des charges ; elle ne doit pas être téléversée telle quelle sur un dépôt public. Les anciens modèles locaux hors liste approuvée ne sont inclus dans aucune des deux archives.
 
-## Hébergement gratuit et déploiement du conteneur existant
+## Déploiement gratuit sur Streamlit Community Cloud
 
-Un seul conteneur expose **7860** : Nginx distribue `/api/` à FastAPI (8000) et le reste à Streamlit (8501), avec l’upgrade WebSocket. `deploy/start.py` supervise les trois processus et partage le registre local entre l’interface et l’API. Le Dockerfile existant utilise Python 3.11 et l’UID 1000 ; aucun composant scientifique n’a été modifié pour la publication.
+Le point d’entrée dédié est **`cloud_app.py`**. Il démarre la FastAPI canonique sur **127.0.0.1:8765**, attend sa santé, puis exécute **`app.py`**. Les prédictions et interprétations passent toujours par de vraies requêtes HTTP. L’interface et le service partagent les mêmes fichiers du registre ; aucune copie de la logique ML ni aucun service externe ne sont nécessaires.
+
+Dans [Streamlit Community Cloud](https://share.streamlit.io/), choisir **Create app**, puis renseigner :
+
+| Paramètre | Valeur |
+|---|---|
+| Repository | `AhmedZri/BankInsight-XAI` |
+| Branch | `main` |
+| Main file path | `cloud_app.py` |
+| Python version, dans Advanced settings | **3.11** |
+| Secrets | Aucun requis |
+| Dépendances Python | `requirements.txt`, détecté automatiquement |
+| Dépendances système supplémentaires | Aucune : pas de `packages.txt` |
+
+Choisir le sous-domaine souhaité s’il est disponible, puis **Deploy**. La connexion à Community Cloud et l’autorisation d’accès au dépôt doivent être effectuées dans le compte du propriétaire. Le dépôt est déjà public. Aucun abonnement payant ni aucune VM ne sont nécessaires. [Procédure officielle](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy).
+
+### Démarrage partagé et documentation API
+
+`st.cache_resource` conserve un gestionnaire partagé entre les sessions. Un verrou noyau interprocessus protège le démarrage et un identifiant vérifie que le port appartient à notre service. Les reruns et sessions simultanées réutilisent donc la même API ; si elle s’arrête, elle est redémarrée lors de la prochaine interaction. La fermeture du parent ferme son canal de supervision et arrête l’API, même si le parent s’arrête brutalement. Un client ayant seulement réutilisé le service ne peut pas arrêter celui de son propriétaire.
+
+Un seul calcul POST d’inférence ou d’explication est traité à la fois côté API, afin d’éviter des chargements concurrents de modèles. Les endpoints de santé, liste et documentation restent accessibles en interne. Aucun cache supplémentaire des cinq modèles n’est créé.
+
+Sur Community Cloud, **FastAPI n’est pas exposée publiquement**. La section **6 · Service API** affiche sa santé et propose **Télécharger la spécification OpenAPI**, obtenue par HTTP depuis `/api/openapi.json`. Elle permet aussi de consulter le schéma dans la page ; aucun lien localhost n’est présenté comme une URL distante. `/api/docs` reste disponible sur le serveur interne. Les chemins local et Docker conservent leur documentation Swagger habituelle.
+
+### Vérification locale du point d’entrée cloud
+
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run cloud_app.py
+# Recette des six sections, HTTP, XGBoost archivé, SHAP/LIME et deuxième session :
+.\.venv\Scripts\python.exe scripts/validate_cloud.py
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+Le script de recette n’entraîne pas les modèles UCI et vérifie les empreintes des fichiers scientifiques avant/après. Les tests de régression habituels utilisent leurs fixtures synthétiques. La recette a réussi sur Windows et sur Linux avec un conteneur limité à **1 Gio de RAM et deux CPU**, sans dépassement mémoire. La réutilisation, le redémarrage et le démarrage simultané de l’API sont testés avec de vrais processus. Ces contrôles locaux ne prouvent pas encore que la publication Community Cloud est opérationnelle.
+
+La roue Linux XGBoost embarque sa bibliothèque OpenMP ; aucun nginx ni paquet système supplémentaire n’est utilisé par le point d’entrée cloud. Python 3.11 et les versions de dépendances déjà testées sont conservés.
+
+### Limites gratuites et validation après publication
+
+Les [ressources Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud/manage-your-app) sont partagées et peuvent varier ; un test local sous plafond ne garantit pas le quota effectivement attribué au compte. Commencer la démonstration avec l’expérience complète **archivée**, sans réentraîner, et éviter plusieurs calculs lourds simultanés. Les données UCI et les cinq artefacts approuvés sont présents dans GitHub. Les fichiers créés à l’exécution sont temporaires ; réserver les CSV personnels à une exécution locale.
+
+Après déploiement, ouvrir l’URL réellement attribuée, parcourir les six sections, expliquer un client avec le modèle XGBoost archivé et télécharger OpenAPI. La santé, la prédiction, SHAP et LIME doivent réussir via les appels HTTP internes. En cas de limite de ressources, consulter les journaux et signaler le blocage ; aucune offre payante n’est proposée. Une augmentation gratuite à titre pédagogique peut être sollicitée auprès de Streamlit, sans garantie d’acceptation.
+
+**État de publication : point d’entrée préparé et testé localement ; aucune URL publique Community Cloud vérifiée à ce stade.** Le code Docker existant reste utilisable pour les vérifications locales, sans changement de configuration :
 
 ```powershell
 docker build -t bankinsight-xai tmp/publication/BankInsight-XAI
 docker run --rm --name bankinsight-demo --cpus 2 --memory 2g -p 7860:7860 bankinsight-xai
-# Dans un autre terminal :
 .\.venv\Scripts\python.exe scripts/verify_http.py
 ```
-
-### Choix d’hébergement vérifié le 29 octobre 2026
-
-- **Streamlit Community Cloud** déploie un point d’entrée Streamlit. Le lancement de `app.py` seul ne démarre pas le processus FastAPI existant. Une séparation sur deux services exigerait aussi de préserver le registre partagé lors des entraînements. Cette publication ne remplace donc pas le backend par une simulation et ne modifie pas le code gelé pour contourner cette contrainte. [Déploiement Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy).
-- **Hugging Face Docker Spaces** : la documentation actuelle indique que la création d’un Space Docker nécessite un abonnement payant, même lorsque le CPU Basic n’a pas de coût horaire. Ce choix n’est donc pas retenu pour la contrainte « aucun service payant ». L’en-tête YAML Docker historique reste une configuration technique, pas une preuve de gratuité ni de déploiement. [Conditions actuelles des Spaces](https://huggingface.co/docs/hub/spaces-overview).
-- **Render et Koyeb gratuits** : 512 Mo de RAM, inférieurs au pic de recette de 1,48 Gio. Leur compatibilité n’est pas déclarée sans essai concluant ; aucune montée en gamme payante n’est autorisée. [Render](https://render.com/docs/compute-plans), [Koyeb](https://www.koyeb.com/docs/reference/instances).
-- **VM Linux réellement gratuite** : le conteneur peut être préparé sur une machine existante disposant d’au moins 2 Gio de RAM. Une possibilité est OCI **Always Free**, dans la région d’origine, en respectant les ressources explicitement marquées gratuites. La documentation actuelle mentionne jusqu’à 2 OCPU et 12 Go pour Ampere A1, sous réserve de disponibilité. Le compte doit rester en offre gratuite, sans passage en Pay As You Go. La compatibilité ARM et les endpoints doivent être testés sur la machine réelle avant toute annonce de réussite. [Ressources Always Free](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm), [conditions du compte gratuit](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier.htm).
-
-### Action manuelle requise pour terminer l’hébergement
-
-Fournir un accès SSH à une VM Linux gratuite d’au moins 2 Gio, ou créer une VM explicitement **Always Free** dans votre propre compte OCI, sans mise à niveau payante. La création du compte peut demander une vérification bancaire par le fournisseur ; elle doit être effectuée par le propriétaire, hors de ce dépôt. Aucune clé privée ni aucun mot de passe ne doit être placé dans le projet ou transmis dans le chat. Aucun hôte cloud utilisable n’est actuellement authentifié dans cette session.
-
-Sur la VM, après installation de Docker depuis sa distribution officielle :
-
-```bash
-git clone https://github.com/AhmedZri/BankInsight-XAI.git
-cd BankInsight-XAI
-docker build -t bankinsight-xai .
-docker run -d --name bankinsight-xai --restart unless-stopped \
-  --cpus 2 --memory 2g -p 7860:7860 bankinsight-xai
-docker logs --tail 100 bankinsight-xai
-curl --fail http://127.0.0.1:7860/api/health
-```
-
-Autoriser le port applicatif 7860 dans les règles réseau de la VM et du fournisseur. Utiliser les seules sources publiques du dépôt, sans le ZIP professeur. Puis, depuis le projet local, tester **l’adresse réellement attribuée** :
-
-```powershell
-.\.venv\Scripts\python.exe scripts/verify_http.py --base 'URL_PUBLIQUE_REELLE'
-```
-
-Le contrôle réalise des requêtes HTTP réelles : santé, OpenAPI, inférence, SHAP/LIME local et global, puis upgrade WebSocket. Il supporte également HTTPS avec validation du certificat. Ouvrir ensuite la page de l’application et `/api/docs` dans un navigateur, puis reporter les vraies URL dans ce README. Une image construite localement ne prouve pas la disponibilité du service dans le cloud.
-
-Sur une instance publique partagée, le registre est partagé et le prototype n’est pas adapté à des données personnelles. Réserver les CSV privés à une exécution locale contrôlée. Les fichiers créés dans un conteneur sans volume ne sont pas une sauvegarde persistante ; les modèles UCI livrés restent présents dans l’image.
 
 ## Publication GitHub
 

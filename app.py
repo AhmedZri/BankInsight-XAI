@@ -173,7 +173,16 @@ else:
     elif section == sections[5]:
         st.subheader('Service FastAPI utilisé par cette application')
         st.json(api_request('/api/health'))
-        st.link_button('Documentation OpenAPI', os.environ.get('BANKINSIGHT_PUBLIC_API_DOCS', 'http://127.0.0.1:8000/api/docs'))
+        if os.environ.get('BANKINSIGHT_API_INTERNAL') == '1':
+            specification = api_request('/api/openapi.json')
+            st.download_button('Télécharger la spécification OpenAPI',
+                json.dumps(specification, ensure_ascii=False, indent=2),
+                file_name='bankinsight_openapi.json', mime='application/json')
+            st.caption('Sur Community Cloud, FastAPI est interne au serveur. La spécification provient de son endpoint HTTP ; son adresse localhost n’est pas accessible depuis votre navigateur.')
+            with st.expander('Consulter les endpoints OpenAPI'):
+                st.json(specification, expanded=False)
+        else:
+            st.link_button('Documentation OpenAPI', os.environ.get('BANKINSIGHT_PUBLIC_API_DOCS', 'http://127.0.0.1:8000/api/docs'))
         st.write('La liste ci-dessous et les prédictions/explications de la section XAI proviennent de requêtes HTTP réelles.')
         st.json(metadata, expanded=False)
         st.code('GET /api/health\nGET /api/models\nPOST /api/predict\nPOST /api/explain/local\nPOST /api/explain/global')

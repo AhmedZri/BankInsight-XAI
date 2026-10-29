@@ -11,7 +11,8 @@ def api_request(endpoint, payload=None):
         return response.json()
     except requests.RequestException as exc:
         detail = exc.response.text[:600] if exc.response is not None else str(exc)
-        raise RuntimeError("API inaccessible ou requête refusée. Lancer python scripts/run_local.py. " + detail) from exc
+        recovery = 'Relancer la page et consulter les journaux Community Cloud.' if os.environ.get('BANKINSIGHT_API_INTERNAL') == '1' else 'Lancer python scripts/run_local.py.'
+        raise RuntimeError('API inaccessible ou requête refusée. ' + recovery + ' ' + detail) from exc
 
 
 def customer_json(row):
