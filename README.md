@@ -12,9 +12,9 @@ license: mit
 
 Projet Challenge 1, ENSI, Data Mining, filières II3-IA et II3-IF, 2026/2027. Enseignante : Rym Besrour. Cas 3 : prédire la souscription à un dépôt à terme et expliquer les décisions. Ce prototype universitaire ne constitue pas une politique de ciblage validée pour une banque.
 
-**Dépôt GitHub des sources publiques : [AhmedZri/BankInsight-XAI](https://github.com/AhmedZri/BankInsight-XAI).** Les 15 captures sont présentées ci-dessous. **Application en ligne : non déployée à ce stade ; aucune URL applicative ni API publique n’a encore été vérifiée.** Le code, les modèles et les résultats scientifiques sont gelés.
+**Dépôt GitHub des sources publiques : [AhmedZri/BankInsight-XAI](https://github.com/AhmedZri/BankInsight-XAI).** Les 15 captures sont présentées ci-dessous. **Application en ligne : [BankInsight XAI](https://bankinsight-xai.streamlit.app/), vérifiée dans Chrome le 29 octobre 2026.** FastAPI reste interne au serveur et est appelée en HTTP par l’interface. Le code, les modèles et les résultats scientifiques sont gelés.
 
-Le cahier des charges officiel est le PDF pédagogique fourni dans `docs/` pour la remise privée, lu intégralement (4 pages). Il est exclu du dépôt Git, de l’archive de publication et de Docker, faute d’autorisation de publication. La [matrice de conformité](docs/conformite.md) distingue fonctions réalisées, vérifications et livrables externes restant à publier. Le PDF exige un déploiement et un dépôt GitHub ; leur préparation ne remplace pas leur publication. Aucun lien de publication n’est inventé.
+Le cahier des charges officiel est le PDF pédagogique fourni dans `docs/` pour la remise privée, lu intégralement (4 pages). Il est exclu du dépôt Git, de l’archive de publication et de Docker, faute d’autorisation de publication. La [matrice de conformité](docs/conformite.md) décrit les fonctions et leurs preuves de vérification. Le dépôt GitHub et l’application Community Cloud sont publiés ; la recette distante des six modules a réussi.
 
 ## Installation reproductible sous Windows
 
@@ -257,7 +257,7 @@ Sur Community Cloud, **FastAPI n’est pas exposée publiquement**. La section *
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-Le script de recette n’entraîne pas les modèles UCI et vérifie les empreintes des fichiers scientifiques avant/après. Les tests de régression habituels utilisent leurs fixtures synthétiques. La recette a réussi sur Windows et sur Linux avec un conteneur limité à **1 Gio de RAM et deux CPU**, sans dépassement mémoire. La réutilisation, le redémarrage et le démarrage simultané de l’API sont testés avec de vrais processus. Ces contrôles locaux ne prouvent pas encore que la publication Community Cloud est opérationnelle.
+Le script de recette n’entraîne pas les modèles UCI et vérifie les empreintes des fichiers scientifiques avant/après. Les tests de régression habituels utilisent leurs fixtures synthétiques. La recette a réussi sur Windows et sur Linux avec un conteneur limité à **1 Gio de RAM et deux CPU**, sans dépassement mémoire. La réutilisation, le redémarrage et le démarrage simultané de l’API sont testés avec de vrais processus. Ces contrôles locaux sont complétés par la recette distante ci-dessous.
 
 La roue Linux XGBoost embarque sa bibliothèque OpenMP ; aucun nginx ni paquet système supplémentaire n’est utilisé par le point d’entrée cloud. Python 3.11 et les versions de dépendances déjà testées sont conservés.
 
@@ -267,7 +267,7 @@ Les [ressources Community Cloud](https://docs.streamlit.io/deploy/streamlit-comm
 
 Après déploiement, ouvrir l’URL réellement attribuée, parcourir les six sections, expliquer un client avec le modèle XGBoost archivé et télécharger OpenAPI. La santé, la prédiction, SHAP et LIME doivent réussir via les appels HTTP internes. En cas de limite de ressources, consulter les journaux et signaler le blocage ; aucune offre payante n’est proposée. Une augmentation gratuite à titre pédagogique peut être sollicitée auprès de Streamlit, sans garantie d’acceptation.
 
-**État de publication : point d’entrée préparé et testé localement ; aucune URL publique Community Cloud vérifiée à ce stade.** Le code Docker existant reste utilisable pour les vérifications locales, sans changement de configuration :
+**État de publication : [application Community Cloud opérationnelle](https://bankinsight-xai.streamlit.app/), recette distante réussie le 29 octobre 2026.** Le code Docker existant reste utilisable pour les vérifications locales, sans changement de configuration :
 
 ```powershell
 docker build -t bankinsight-xai tmp/publication/BankInsight-XAI
@@ -292,6 +292,23 @@ Données anciennes d’une banque portugaise, absence de validation temporelle p
 
 Les exports `assets/figures/shap_global.png` et `assets/figures/shap_local.png` sont des figures calculées. Les captures fournies ensuite par le propriétaire sont présentées dans la galerie ci-dessus et incluses dans le ZIP professeur. Les rapports de recette existants conservent l’état de la vérification automatisée antérieure à cet ajout.
 
-Lors de cette recette automatisée, l’inventaire était `apps=[]`, `browsers=[]` et l’ouverture Chrome avait été refusée avec **« Browser is not available: chrome »**. L’intégration des captures fournies ne constitue pas une nouvelle exécution des tests navigateur. Le [parcours manuel](docs/recette_navigateur.md) reste disponible pour une vérification complémentaire. L’hébergement public et sa vérification HTTP restent à compléter ; aucune URL applicative n’est inventée.
+Lors de la recette automatisée antérieure, les outils de navigation étaient indisponibles. Le 29 octobre 2026, une session Chrome de test a permis de vérifier le vrai site public, y compris son iframe Streamlit. Les 15 captures existantes sont conservées à l’identique ; les rapports scientifiques antérieurs restent gelés. Le [parcours manuel](docs/recette_navigateur.md) conserve la procédure historique de contrôle complémentaire.
 
 La recette Docker locale issue de l’archive publique est contrôlée avec deux CPU et 2 Gio de RAM : santé, OpenAPI, inférence, SHAP/LIME, WebSocket, pytest et parcours AppTest incluant entraînement réel et formulaire fictif. Les résultats finaux figurent dans `reports/verification.json`. Pic mémoire cgroup mesuré : **1 592 082 432 octets (1,48 Gio)** ; ce n’est pas un benchmark multiutilisateur. L’arrêt volontaire du processus API termine le conteneur et ses autres services ; le code 241 enregistré correspond à ce signal de test, sans OOM. Voir `reports/deployment_verification.json`. Aucun de ces contrôles locaux n’est présenté comme un déploiement public ou une recette navigateur.
+
+## Recette publique du 29 octobre 2026
+
+URL contrôlée : **https://bankinsight-xai.streamlit.app/**. Vérification dans Chrome sur le site distant, avec l’expérience archivée `8b2b7391` et le modèle XGBoost `e02cfcb1d0bf414db38e574c585369ae`, sans entraînement.
+
+| Module | Contrôle distant réussi |
+|---|---|
+| 1 · Données | 45 211 observations UCI, statistiques et graphiques exploratoires affichés |
+| 2 · Préparation | Configuration appliquée : 2 500 lignes d’entraînement / 9 043 de test ; aucun modèle entraîné |
+| 3 · Modélisation | Commandes disponibles et comparaison des cinq modèles archivés affichée |
+| 4 · Évaluation | AP 0,446, ROC-AUC 0,787, courbes ROC/PR, matrice ; curseur passé de 0,50 à 0,51 |
+| 5 · Explainable AI | SHAP global sur 24 clients, dépendance et permutation ; client test 0 : 18,9 %, waterfall SHAP, table LIME et synthèse ; R² LIME 0,294, erreur d’additivité SHAP affichée : 0 |
+| 6 · Service API | Réponse de santé FastAPI `status=ok`, liste et exemple du modèle, téléchargement OpenAPI réussi |
+
+La spécification téléchargée `bankinsight_openapi.json` contient les cinq endpoints réels : santé, modèles, prédiction, explication locale et globale. Les résultats de prédiction et d’explication ci-dessus sont obtenus par les appels HTTP internes de l’interface canonique. Aucun lien localhost n’est affiché dans la section API. Aucune erreur applicative n’a été constatée pendant ce parcours. Le simple HTTP 200 de la page d’accueil Community Cloud n’a pas été utilisé comme preuve de ces calculs.
+
+**Remise académique prête : OUI.** Les sources, notebook, FastAPI, tests, one-pager d’une page, 15 captures et documentation sont inclus dans le ZIP professeur vérifié. Les modèles, données, métriques, conclusions et captures sont inchangés. Cette recette atteste le fonctionnement observé, sans garantie de disponibilité permanente du service gratuit ni validation de charge multiutilisateur.
